@@ -2,6 +2,10 @@ from django.shortcuts import render
 from catalog.models import Book, Author, BookInstance, Genre
 from django.views import generic
 from django.shortcuts import get_object_or_404
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import PermissionRequiredMixin
+from . import views
+
 
 def index(request):
     """View function for home page of site."""
@@ -66,4 +70,34 @@ class AuthorDetailView(generic.DetailView):
     def author_detail_view(request, primary_key):
         author = get_object_or_404(Author, pk=primary_key)
         return render(request,'author_detail.html',context={'author': author})       
+
+# class MyView(PermissionRequiredMixin, View):
+#     permission_required = 'catalog.can_mark_returned'
+#     # Or multiple permissions
+#     permission_required = ('catalog.can_mark_returned', 'catalog.can_edit')
+#     # Note that 'catalog.can_edit' is just an example
+#     # the catalog application doesn't have such permission!
+
+# class MyView(LoginRequiredMixin, View):
+#     login_url = '/login/'
+#     redirect_field_name = 'redirect_to'
+
+
+class LoanedBooksByUserListView(LoginRequiredMixin,generic.ListView):
+    """Generic class-based view listing books on loan to current user."""
+    model = BookInstance
+    template_name ='catalog/bookinstance_list_borrowed_user.html'
+    paginate_by = 10
+    
+    def get_queryset(self):
+        return BookInstance.objects.filter(borrower=self.request.user).filter(status__exact='o').order_by('due_back')
+
+class LoanedBooksByStaffListView(LoginRequiredMixin,generic.ListView):
+    """Generic class-based view listing books on loan to current user."""
+    model = BookInstance
+    template_name ='catalog/bookinstance_list_borrowed_staff.html'
+    paginate_by = 10
+    
+    def get_queryset(self):
+        return BookInstance.objects.all().filter(status__exact='o').order_by('due_back')
 
